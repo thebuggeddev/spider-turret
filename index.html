@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UNIT-06 Spider Rotary Turret — Spatial Technical Poster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ==========================================================================
+       UNIT-06 SPIDER ROTARY TURRET — WARM VELLUM SPATIAL POSTER (?v=25)
+       Warm Archival Vellum (#F0EDE6), Cream Surface (#F8F6F0),
+       Deep Carbon Graphite Ink (#18181B), and Signal Orange (#E65616).
+       ========================================================================== */
+    :root {
+      --paper-bg: #f0ede6;
+      --surface-card: rgba(248, 246, 240, 0.96);
+      --surface-subtle: #e7e3da;
+      --surface-hover: #ded9ce;
+      --ink-primary: #18181b;
+      --ink-secondary: #4e4b45;
+      --ink-muted: #7e7970;
+      --border-hairline: #d4cfc4;
+      --border-strong: #b2aca0;
+      --signal-orange: #e65616;
+      --signal-orange-soft: #fbece5;
+      --font-display: 'Chakra Petch', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body, #root {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--paper-bg);
+      color: var(--ink-primary);
+      font-family: var(--font-display);
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+
+    .bf-viewport {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background-color: var(--paper-bg);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='42' height='42' viewBox='0 0 42 42'%3E%3Cpath d='M 42 0 L 0 0 0 42' fill='none' stroke='%23e3ded4' stroke-width='1'/%3E%3C/svg%3E");
+      overflow: hidden;
+    }
+
+    /* ==========================================================================
+       1. CENTER STAGE POLAR PROTRACTOR RING & WEBGPU CANVAS
+       ========================================================================== */
+    .spatial-backdrop-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .spatial-leader-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .bf-canvas-layer {
+      position: absolute !important;
+      inset: 0;
+      z-index: 2;
+    }
+
+    /* ==========================================================================
+       2. TOP-LEFT EDITORIAL TITLE STAMP (OPEN ON VELLUM PAPER)
+       ========================================================================== */
+    .poster-title-stamp {
+      position: fixed;
+      top: 22px;
+      left: 42px;
+      z-index: 20;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .pts-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--ink-muted);
+    }
+
+    .pts-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--signal-orange);
+      display: inline-block;
+    }
+
+    .pts-heading {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      line-height: 1.05;
+      color: var(--ink-primary);
+    }
+
+    .pts-badge-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 3px;
+      font-family: var(--font-mono);
+    }
+
+    .pts-badge {
+      font-size: 8px;
+      font-weight: 600;
+      color: var(--ink-secondary);
+      background-color: rgba(248, 246, 240, 0.9);
+      border: 1px solid var(--border-strong);
+      border-radius: 4px;
+      padding: 2px 7px;
+    }
+
+    .pts-badge strong {
+      font-weight: 700;
+      color: var(--ink-primary);
+    }
+
+    .pts-badge strong.orange {
+      color: var(--signal-orange);
+    }
+
+    .pts-badge.muted {
+      color: var(--ink-muted);
+      border-color: var(--border-hairline);
+    }
+
+    /* ==========================================================================
+       3. TOP-RIGHT FLOATING CAMERA & MODE PILLS
+       ========================================================================== */
+    .poster-top-controls {
+      position: fixed;
+      top: 22px;
+      right: 42px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: var(--surface-card);
+      border: 1px solid var(--border-strong);
+      border-radius: 999px;
+      padding: 4px 6px;
+      box-shadow: 0 6px 18px rgba(24, 24, 27, 0.06);
+      backdrop-filter: blur(6px);
+    }
+
+    .bf-cam-strip {
+      display: flex;
+      gap: 3px;
+      padding-left: 2px;
+    }
+
+    .cam-chip {
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--ink-secondary);
+      background-color: transparent;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      padding: 4.5px 8.5px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+
+    .cam-chip:hover {
+      color: var(--ink-primary);
+      background-color: var(--surface-subtle);
+    }
+
+    .cam-chip.active {
+      color: var(--signal-orange);
+      border-color: var(--signal-orange);
+      background-color: var(--signal-orange-soft);
+    }
+
+    .bf-mode-pill {
+      display: flex;
+      background-color: var(--paper-bg);
+      border: 1px solid var(--border-hairline);
+      padding: 2px;
+      gap: 2px;
+      border-radius: 999px;
+    }
+
+    .mode-btn {
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--ink-secondary);
+      background-color: transparent;
+      border: none;
+      border-radius: 999px;
+      padding: 4.5px 9.5px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+
+    .mode-btn:hover {
+      color: var(--ink-primary);
+    }
+
+    .mode-btn.active {
+      color: #ffffff;
+      background-color: var(--ink-primary);
+    }
+
+    .mode-btn.active-play {
+      color: #ffffff;
+      background-color: var(--signal-orange);
+    }
+
+    /* Shared Corner Framing Reticles for Unannotated Blueprint Boxes */
+    .stage-bracket {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-color: var(--signal-orange);
+      border-style: solid;
+      pointer-events: none;
+    }
+    .stage-bracket.tl { top: 6px; left: 6px; border-width: 1.5px 0 0 1.5px; }
+    .stage-bracket.tr { top: 6px; right: 6px; border-width: 1.5px 1.5px 0 0; }
+    .stage-bracket.bl { bottom: 6px; left: 6px; border-width: 0 0 1.5px 1.5px; }
+    .stage-bracket.br { bottom: 6px; right: 6px; border-width: 0 1.5px 1.5px 0; }
+
+    /* ==========================================================================
+       4. LEFT CARD: SLEEK TACTILE INSTRUMENT WELLS & PILL METRICS CARD
+       ========================================================================== */
+    .left-telemetry-card {
+      position: fixed;
+      top: 124px;
+      left: 42px;
+      width: 304px;
+      background-color: rgba(248, 246, 240, 0.88);
+      border: 1px solid var(--border-strong);
+      border-radius: 14px;
+      padding: 13px;
+      box-shadow: 0 10px 26px rgba(24, 24, 27, 0.05);
+      backdrop-filter: blur(8px);
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+
+    .ltc-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2px;
+      font-family: var(--font-mono);
+    }
+
+    .ltc-eyebrow {
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--ink-muted);
+      letter-spacing: 0.07em;
+    }
+
+    .ltc-posture-pill {
+      font-size: 7px;
+      font-weight: 700;
+      color: var(--signal-orange);
+      background-color: #ffffff;
+      border: 1px solid var(--border-strong);
+      padding: 2px 7px;
+      border-radius: 999px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Two Tactile Recessed Instrument Wells Side-by-Side */
+    .ltc-wells-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .ltc-well-card {
+      background-color: #ffffff;
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      padding: 10px 8px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      box-shadow: inset 0 1px 3px rgba(24, 24, 27, 0.03), 0 3px 8px rgba(24, 24, 27, 0.04);
+    }
+
+    .ltc-well-card.interactive-well {
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .ltc-well-card.interactive-well:active {
+      cursor: grabbing;
+      border-color: var(--signal-orange);
+    }
+
+    .ltc-schem-svg {
+      width: 92px;
+      height: 92px;
+      display: block;
+    }
+
+    .ltc-well-lbl {
+      font-family: var(--font-mono);
+      font-size: 6.5px;
+      font-weight: 700;
+      color: var(--ink-secondary);
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .gait-pair polyline {
+      stroke: #b5afa3;
+      transition: stroke 0.15s ease;
+    }
+
+    .gait-pair circle {
+      fill: #b5afa3;
+      transition: fill 0.15s ease;
+    }
+
+    .gait-pair.active-pair polyline {
+      stroke: var(--ink-primary);
+    }
+
+    .gait-pair.active-pair circle {
+      fill: var(--signal-orange);
+    }
+
+    /* 2x2 Tactile Metric Pills (Matches Bottom-Left Typography & Stamp Style) */
+    .ltc-pills-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+
+    .ltc-metric-pill {
+      background-color: var(--paper-bg);
+      border: 1px solid var(--border-hairline);
+      border-radius: 8px;
+      padding: 7px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .ltc-mp-val {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.05;
+      color: var(--ink-primary);
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    .ltc-mp-val.orange {
+      color: var(--signal-orange);
+    }
+
+    .ltc-mp-lbl {
+      font-family: var(--font-mono);
+      font-size: 6.5px;
+      font-weight: 700;
+      color: var(--ink-muted);
+      letter-spacing: 0.06em;
+    }
+
+    /* ==========================================================================
+       5. LOWER-LEFT: OPEN SCALE METRICS + 4 ORTHO THUMBNAILS (KEPT AS IS!)
+       ========================================================================== */
+    .poster-bottom-left {
+      position: fixed;
+      bottom: 84px;
+      left: 42px;
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .pbl-scale-metrics {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .pbl-metric {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .pbl-big {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink-primary);
+      letter-spacing: 0.02em;
+    }
+
+    .pbl-sub {
+      font-family: var(--font-mono);
+      font-size: 7.5px;
+      font-weight: 700;
+      color: var(--ink-muted);
+      letter-spacing: 0.06em;
+    }
+
+    .pbl-sep {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--border-strong);
+    }
+
+    .ortho-stamp-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .ortho-stamp-btn {
+      width: 64px;
+      background-color: var(--surface-card);
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      transition: all 0.14s ease;
+      box-shadow: 0 4px 12px rgba(24, 24, 27, 0.05);
+    }
+
+    .ortho-stamp-btn:hover {
+      border-color: var(--ink-primary);
+      transform: translateY(-2px);
+    }
+
+    .ortho-stamp-btn.active {
+      border-color: var(--signal-orange);
+      background-color: #ffffff;
+      box-shadow: 0 4px 12px rgba(230, 86, 22, 0.16);
+    }
+
+    .ortho-stamp-img {
+      width: 100%;
+      height: 36px;
+      object-fit: contain;
+      mix-blend-mode: multiply;
+    }
+
+    .ortho-stamp-lbl {
+      font-family: var(--font-mono);
+      font-size: 7.5px;
+      font-weight: 700;
+      color: var(--ink-secondary);
+      letter-spacing: 0.05em;
+    }
+
+    .ortho-stamp-btn.active .ortho-stamp-lbl {
+      color: var(--signal-orange);
+    }
+
+    /* ==========================================================================
+       6. RIGHT MAJOR CARD: LONGER WARM-VELLUM SUB-ASSEMBLY BLUEPRINT DOSSIER
+       ========================================================================== */
+    .right-anatomy-card {
+      position: fixed;
+      top: 78px;
+      bottom: 84px;
+      right: 42px;
+      width: 348px;
+      background-color: var(--surface-card);
+      border: 1px solid var(--border-strong);
+      border-top: 3px solid var(--ink-primary);
+      border-radius: 10px;
+      box-shadow: 0 12px 30px rgba(24, 24, 27, 0.07);
+      backdrop-filter: blur(6px);
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .rac-sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 13px;
+      background-color: var(--surface-subtle);
+      border-bottom: 1px solid var(--border-strong);
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+
+    .rac-title-group {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .rac-tag {
+      font-size: 7.5px;
+      font-weight: 700;
+      color: #ffffff;
+      background-color: var(--ink-primary);
+      padding: 1.5px 5.5px;
+      border-radius: 3px;
+    }
+
+    .rac-title {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--ink-primary);
+      letter-spacing: 0.04em;
+    }
+
+    .rac-sub {
+      font-size: 7.5px;
+      font-weight: 700;
+      color: var(--ink-muted);
+      background-color: var(--paper-bg);
+      border: 1px solid var(--border-hairline);
+      padding: 1.5px 6px;
+      border-radius: 3px;
+    }
+
+    .rac-modules-stack {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px 11px;
+      gap: 9px;
+    }
+
+    .rac-module-block {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--paper-bg);
+      border: 1px solid var(--border-strong);
+      border-radius: 7px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.14s ease, transform 0.14s ease;
+    }
+
+    .rac-module-block:hover {
+      border-color: var(--signal-orange);
+      transform: translateX(-2px);
+    }
+
+    .rac-mod-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5.5px 9px;
+      background-color: var(--surface-subtle);
+      border-bottom: 1px solid var(--border-hairline);
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+
+    .rac-mod-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .rac-mod-num {
+      font-size: 7.5px;
+      font-weight: 700;
+      color: #ffffff;
+      background-color: var(--ink-primary);
+      padding: 1px 4.5px;
+      border-radius: 2.5px;
+    }
+
+    .rac-mod-num.orange {
+      background-color: var(--signal-orange);
+    }
+
+    .rac-mod-name {
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--ink-primary);
+      letter-spacing: 0.03em;
+    }
+
+    .rac-mod-live {
+      font-size: 7.5px;
+      font-weight: 700;
+      color: var(--signal-orange);
+      background-color: var(--surface-card);
+      border: 1px solid var(--border-hairline);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    .rac-sketch-box {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 12px;
+      background-color: #faf8f3;
+      background-image:
+        linear-gradient(to right, rgba(212, 207, 196, 0.35) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(212, 207, 196, 0.35) 1px, transparent 1px);
+      background-size: 14px 14px;
+      border-bottom: 1px solid var(--border-hairline);
+      overflow: hidden;
+    }
+
+    .rac-sketch-img {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      mix-blend-mode: multiply;
+      transition: transform 0.18s ease;
+    }
+
+    .rac-module-block:hover .rac-sketch-img {
+      transform: scale(1.04);
+    }
+
+    .rac-spec-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      background-color: var(--surface-card);
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+
+    .rac-spec-cell {
+      padding: 4.5px 8px;
+      border-right: 1px solid var(--border-hairline);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5px;
+    }
+
+    .rac-spec-cell:last-child {
+      border-right: none;
+    }
+
+    .rac-sk {
+      font-size: 6px;
+      font-weight: 700;
+      color: var(--ink-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .rac-sv {
+      font-size: 7.5px;
+      font-weight: 700;
+      color: var(--ink-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ==========================================================================
+       7. CENTER TARGETING RETICLE (INTERACTIVE CONTROL MODE)
+       ========================================================================== */
+    .tactical-reticle {
+      position: fixed;
+      top: 46%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: none;
+      z-index: 15;
+    }
+
+    .reticle-ring {
+      width: 44px;
+      height: 44px;
+      border: 1.5px solid var(--ink-primary);
+      border-radius: 50%;
+    }
+
+    .reticle-ring.firing {
+      border-color: var(--signal-orange);
+      transform: scale(1.18);
+    }
+
+    .reticle-dot {
+      position: absolute;
+      top: 20px;
+      width: 4px;
+      height: 4px;
+      background-color: var(--signal-orange);
+      border-radius: 50%;
+    }
+
+    .reticle-readout {
+      margin-top: 6px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--ink-primary);
+      background-color: var(--surface-card);
+      padding: 2px 8px;
+      border: 1px solid var(--border-strong);
+      border-radius: 4px;
+    }
+
+    /* ==========================================================================
+       8. BOTTOM-CENTER FLOATING PILL PLAYER DOCK
+       ========================================================================== */
+    .player-dock-wrap {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .player-dock {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background-color: rgba(248, 246, 240, 0.96);
+      border: 1px solid var(--border-strong);
+      border-radius: 999px;
+      padding: 4px 7px;
+      box-shadow: 0 10px 28px rgba(24, 24, 27, 0.11);
+      pointer-events: auto;
+    }
+
+    .player-seg {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      background-color: var(--paper-bg);
+      border: 1px solid var(--border-hairline);
+      border-radius: 999px;
+      padding: 2.5px;
+    }
+
+    .player-divider {
+      width: 1px;
+      height: 20px;
+      background-color: var(--border-hairline);
+    }
+
+    .player-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4.5px;
+      height: 30px;
+      padding: 0 9.5px;
+      border-radius: 999px;
+      border: none;
+      background-color: transparent;
+      color: var(--ink-secondary);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.14s ease;
+    }
+
+    .player-pill:hover {
+      color: var(--ink-primary);
+      background-color: var(--surface-hover);
+    }
+
+    .player-pill.active {
+      color: #ffffff;
+      background-color: var(--ink-primary);
+    }
+
+    .player-pill.compact-pill {
+      padding: 0 8px;
+    }
+
+    .player-pill.icon-only-pill {
+      padding: 0 8px;
+    }
+
+    .player-pill.cad-pill.active-cad {
+      color: #ffffff;
+      background-color: var(--signal-orange);
+    }
+
+    /* 2D Omni-Directional Head Gimbal Joystick Pad in Player Dock */
+    .gimbal-pad-seg {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 2px 8px 2px 4px;
+    }
+
+    .gimbal-xy-pad {
+      position: relative;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background-color: #ffffff;
+      border: 1.5px solid var(--ink-primary);
+      box-shadow: inset 0 1px 4px rgba(24, 24, 27, 0.12);
+      cursor: grab;
+      touch-action: none;
+      flex-shrink: 0;
+    }
+
+    .gimbal-xy-pad:active {
+      cursor: grabbing;
+      border-color: var(--signal-orange);
+    }
+
+    .gimbal-axis-h {
+      position: absolute;
+      top: 50%;
+      left: 3px;
+      right: 3px;
+      height: 1px;
+      background-color: var(--border-hairline);
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .gimbal-axis-v {
+      position: absolute;
+      left: 50%;
+      top: 3px;
+      bottom: 3px;
+      width: 1px;
+      background-color: var(--border-hairline);
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .gimbal-puck {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: var(--signal-orange);
+      border: 1.5px solid #ffffff;
+      box-shadow: 0 1px 4px rgba(24, 24, 27, 0.35);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      transition: transform 0.05s linear;
+    }
+
+    .gimbal-meta-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      font-family: var(--font-mono);
+      min-width: 68px;
+    }
+
+    .gimbal-meta-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+    }
+
+    .gimbal-lbl {
+      font-size: 7px;
+      font-weight: 700;
+      color: var(--ink-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .gimbal-zero-btn {
+      font-family: var(--font-mono);
+      font-size: 6.5px;
+      font-weight: 700;
+      color: var(--ink-secondary);
+      background-color: var(--surface-subtle);
+      border: 1px solid var(--border-strong);
+      border-radius: 3px;
+      padding: 0.5px 3.5px;
+      cursor: pointer;
+    }
+
+    .gimbal-zero-btn:hover {
+      color: #ffffff;
+      background-color: var(--signal-orange);
+      border-color: var(--signal-orange);
+    }
+
+    .gimbal-angle-val {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--ink-primary);
+      white-space: nowrap;
+    }
+
+    .player-fire-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 34px;
+      padding: 0 13px;
+      border-radius: 999px;
+      border: 1.5px solid var(--signal-orange);
+      background-color: var(--signal-orange);
+      color: #ffffff;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(230, 86, 22, 0.25);
+      transition: all 0.14s ease;
+    }
+
+    .player-fire-btn:hover {
+      background-color: #d1490d;
+    }
+
+    .player-fire-btn.active {
+      background-color: var(--ink-primary);
+      border-color: var(--signal-orange);
+    }
+
+    .btn-svg-icon {
+      flex-shrink: 0;
+    }
+
+    /* ==========================================================================
+       9. STUDIO LOADING OVERLAY
+       ========================================================================== */
+    .bf-loader-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: var(--paper-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .bf-loader-card {
+      background-color: var(--surface-card);
+      border: 1px solid var(--border-strong);
+      border-left: 4px solid var(--signal-orange);
+      padding: 24px 32px;
+      width: 360px;
+      box-shadow: 0 12px 32px rgba(24, 24, 27, 0.08);
+    }
+
+    .loader-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--signal-orange);
+      margin-bottom: 6px;
+    }
+
+    .loader-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--ink-primary);
+      margin-bottom: 16px;
+    }
+
+    .loader-bar-outer {
+      width: 100%;
+      height: 4px;
+      background-color: var(--surface-subtle);
+      overflow: hidden;
+    }
+
+    .loader-bar-inner {
+      height: 100%;
+      background-color: var(--signal-orange);
+      transition: width 0.2s ease;
+    }
+
+    @media (max-width: 1024px) {
+      .left-telemetry-card,
+      .right-anatomy-card,
+      .poster-bottom-left {
+        display: none;
+      }
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.3.1",
+        "react/": "https://esm.sh/react@18.3.1/",
+        "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+        "react-dom": "https://esm.sh/react-dom@18.3.1",
+        "react-dom/": "https://esm.sh/react-dom@18.3.1/",
+        "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+        "three": "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.webgpu.js",
+        "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.webgpu.js",
+        "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.tsl.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/",
+        "@react-three/fiber": "https://esm.sh/@react-three/fiber@8.17.10?external=react,react-dom,three"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="module">
+    import React from 'react';
+    import { createRoot } from 'react-dom/client';
+    import { SpiderTurretApp } from './src/components/SpiderTurretApp.js?v=32';
+
+    const rootEl = document.getElementById('root');
+    const root = createRoot(rootEl);
+    root.render(React.createElement(SpiderTurretApp, { glbUrl: './spider_turret.glb?v=32' }));
+  </script>
+</body>
+</html>
