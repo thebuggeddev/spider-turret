@@ -1,13 +1,15 @@
 import * as THREE from 'three';
 import { LegIKSolver } from './LegIKSolver.js?v=31';
 import { QuadrupedGaitController } from './QuadrupedGaitController.js?v=31';
-import { BarrelRotationController, TurretController } from './TurretController.js?v=31';
+import { BarrelRotationController, TurretController } from './TurretController.js?v=36';
 import { AnimationStateMachine } from './AnimationStateMachine.js?v=31';
+import { SoundEngine } from './SoundEngine.js?v=36';
 
 /**
  * Master Robot Controller coordinating locomotion physics, 4-leg analytical IK,
  * terrain-adaptive quadruped gait, sitting posture, head elevation, CAD wireframe,
- * exploded mechanical view, 6-barrel Gatling spin, and Army Aim Box ballistics.
+ * exploded mechanical view, swappable 3D weapon payloads (Gatling / Railgun / Missile),
+ * procedural WebAudio mechanical & ballistic synthesis, and Army Aim Box ballistics.
  */
 export class RobotController {
   constructor({
@@ -31,6 +33,13 @@ export class RobotController {
     this.barrelController = new BarrelRotationController();
     this.turretController = new TurretController(this.barrelController);
     this.stateMachine = new AnimationStateMachine();
+    this.soundEngine = new SoundEngine();
+
+    if (this.projectileSystem) {
+      this.projectileSystem.onTargetHitCallback = (evt) => {
+        this.soundEngine.playTargetImpact(evt.weaponType, evt.isKill);
+      };
+    }
 
     // Robot world transform state
     this.position = new THREE.Vector3(0.0, 0.0, 0.0);
@@ -38,13 +47,16 @@ export class RobotController {
     this.linearVel = new THREE.Vector3(0.0, 0.0, 0.0);
     this.angularVel = 0.0;
 
-    // Special mechanical states requested by user
+    // Special mechanical states & active weapon payload
+    this.weaponType = 'GATLING'; // 'GATLING' | 'RAILGUN' | 'MISSILE'
     this.isSitting = false;
     this.isWireframe = false;
     this.targetExplode = 0.0;
     this.currentExplode = 0.0;
     this.manualYawOffset = 0.0;
     this.manualPitchOffset = 0.0;
+    this._prevAimYaw = 0.0;
+    this._prevAimPitch = 0.0;
 
     // Input state
     this.keys = {
@@ -78,6 +90,7 @@ export class RobotController {
     this._onKeyDown = (e) => {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
       const code = e.code;
+      this.soundEngine.init();
 
       if (code === 'Tab') {
         e.preventDefault();
@@ -102,6 +115,26 @@ export class RobotController {
       if (code === 'KeyV') {
         e.preventDefault();
         this.triggerTestAction('EXPLODE');
+        return;
+      }
+      if (code === 'Digit1') {
+        e.preventDefault();
+        this.setWeaponType('GATLING');
+        return;
+      }
+      if (code === 'Digit2') {
+        e.preventDefault();
+        this.setWeaponType('RAILGUN');
+        return;
+      }
+      if (code === 'Digit3') {
+        e.preventDefault();
+        this.setWeaponType('MISSILE');
+        return;
+      }
+      if (code === 'KeyM') {
+        e.preventDefault();
+        this.triggerTestAction('TOGGLE_SOUND');
         return;
       }
 
@@ -146,6 +179,7 @@ export class RobotController {
   }
 
   toggleMode() {
+    this.soundEngine.init();
     const nextMode = this.cameraController.mode === 'inspect' ? 'control' : 'inspect';
     this.setMode(nextMode);
   }
@@ -158,9 +192,45 @@ export class RobotController {
   }
 
   /**
+   * Switches the active 3D weapon payload ('GATLING' | 'RAILGUN' | 'MISSILE')
+   * with a multi-stage mechanical breech transformation sequence.
+   */
+  setWeaponType(weaponType) {
+    if (weaponType !== 'GATLING' && weaponType !== 'RAILGUN' && weaponType !== 'MISSILE') return;
+    this.soundEngine.init();
+    if (weaponType !== this.weaponType) {
+      this.soundEngine.playWeaponSwapSound(weaponType);
+    }
+    this.weaponType = weaponType;
+    this.turretController.setWeaponType(weaponType, this.rig);
+  }
+
+  /**
    * Triggers a specific mechanical system command from the Army Field Control Deck.
    */
   triggerTestAction(actionName) {
+    this.soundEngine.init();
+
+    if (actionName === 'WEAPON_GATLING') {
+      this.setWeaponType('GATLING');
+      return;
+    }
+
+    if (actionName === 'WEAPON_RAILGUN') {
+      this.setWeaponType('RAILGUN');
+      return;
+    }
+
+    if (actionName === 'WEAPON_MISSILE') {
+      this.setWeaponType('MISSILE');
+      return;
+    }
+
+    if (actionName === 'TOGGLE_SOUND') {
+      this.soundEngine.toggle();
+      return;
+    }
+
     if (actionName === 'RESET') {
       this.resetRobot();
       return;
@@ -240,6 +310,7 @@ export class RobotController {
    * Directly sets the 2-axis head gimbal aim (yaw in [-PI, PI], pitch in [-0.65, 0.78]).
    */
   setManualHeadAim(yawRad, pitchRad) {
+    this.soundEngine.init();
     let normYaw = yawRad;
     while (normYaw > Math.PI) normYaw -= Math.PI * 2.0;
     while (normYaw < -Math.PI) normYaw += Math.PI * 2.0;
@@ -278,6 +349,7 @@ export class RobotController {
       this.rig.setWireframe(false);
       this.rig.setExplodeFactor(0.0);
       this.rig.resetPose();
+      this.rig.setWeaponType(this.weaponType);
     }
     this.gaitController.initFootPositions(this.position, this.yaw);
     if (this.cameraController) {
@@ -396,7 +468,7 @@ export class RobotController {
       Math.abs(turnInput) > 0.05 ||
       Math.abs(strafeInput) > 0.05;
 
-    // 3. Update Turret Aiming & Barrel Spin
+    // 3. Update Turret Aiming & Weapon Payload Cycle
     if (this.cameraController.mode === 'control') {
       this.turretController.setAimAngles(
         this.cameraController.controlAimYaw + this.manualYawOffset,
@@ -410,24 +482,53 @@ export class RobotController {
       this.turretController.setAimAngles(this.manualYawOffset, this.manualPitchOffset);
     }
 
-    const { triggeredShot, spinSpeed, heatLevel } = this.turretController.update(dt, this.rig, {
-      isFiring,
-      isSpinOnly,
-      isIdleScan: false,
-      chassisPitch: this.gaitController.currentPitchX,
-      chassisRoll: this.gaitController.currentRollZ,
-    });
+    const { triggeredShot, spinSpeed, heatLevel, chargeRatio } = this.turretController.update(
+      dt,
+      this.rig,
+      {
+        isFiring,
+        isSpinOnly,
+        isIdleScan: false,
+        chassisPitch: this.gaitController.currentPitchX,
+        chassisRoll: this.gaitController.currentRollZ,
+      }
+    );
 
-    // 4. Spawn Ballistic Tracer, Muzzle Flash & Brass Shell Casing on Firing Index
-    if (triggeredShot && this.projectileSystem) {
+    // 4. Spawn Weapon-Specific Projectile & Trigger Procedural WebAudio SFX on Firing Index
+    if (this.projectileSystem) {
       this.turretController.getActiveMuzzleTransform(this.rig, this._muzzlePos, this._muzzleDir);
-      this.projectileSystem.spawnProjectile(this._muzzlePos, this._muzzleDir);
-      this.recoilImpulse = 1.0;
+      this.projectileSystem.updateWeaponChargeEffect(
+        this._muzzlePos,
+        this._muzzleDir,
+        this.weaponType,
+        chargeRatio,
+        dt
+      );
+    }
+
+    if (triggeredShot && this.projectileSystem) {
+      this.projectileSystem.spawnProjectile(this._muzzlePos, this._muzzleDir, this.weaponType);
+
+      if (this.weaponType === 'RAILGUN') {
+        this.recoilImpulse = 2.4;
+        this.soundEngine.playRailgunShot();
+      } else if (this.weaponType === 'MISSILE') {
+        this.recoilImpulse = 1.35;
+        this.soundEngine.playMissileLaunch();
+      } else {
+        this.recoilImpulse = 1.0;
+        this.soundEngine.playGatlingShot();
+      }
     } else {
       this.recoilImpulse = THREE.MathUtils.lerp(this.recoilImpulse, 0.0, Math.min(1.0, dt * 13.0));
     }
 
-    // 5. Update Quadruped Gait, Sitting Posture & 4-Leg Analytical IK
+    // 5. Update Quadruped Gait, Sitting Posture & 4-Leg Analytical IK (and detect foot touchdown for SFX)
+    const wasSwingFL = this.gaitController.legStates.FL.isSwinging;
+    const wasSwingFR = this.gaitController.legStates.FR.isSwinging;
+    const wasSwingRL = this.gaitController.legStates.RL.isSwinging;
+    const wasSwingRR = this.gaitController.legStates.RR.isSwinging;
+
     this.gaitController.update(dt, this.rig, {
       position: this.position,
       yaw: this.yaw,
@@ -437,6 +538,32 @@ export class RobotController {
       isFastWalk,
       isSitting: this.isSitting,
       recoilImpulse: this.recoilImpulse,
+    });
+
+    if (
+      (wasSwingFL && !this.gaitController.legStates.FL.isSwinging) ||
+      (wasSwingFR && !this.gaitController.legStates.FR.isSwinging) ||
+      (wasSwingRL && !this.gaitController.legStates.RL.isSwinging) ||
+      (wasSwingRR && !this.gaitController.legStates.RR.isSwinging)
+    ) {
+      this.soundEngine.playFootstep(isFastWalk);
+    }
+
+    // Update continuous WebAudio synthesizer (rotary motor whine / railgun charge whine + leg/gimbal servos)
+    const dAimYaw = Math.abs(this.turretController.currentAimYaw - this._prevAimYaw);
+    const dAimPitch = Math.abs(this.turretController.currentAimPitch - this._prevAimPitch);
+    this._prevAimYaw = this.turretController.currentAimYaw;
+    this._prevAimPitch = this.turretController.currentAimPitch;
+    const slewSpeed = dt > 0.0001 ? (dAimYaw + dAimPitch) / dt : 0.0;
+
+    this.soundEngine.updateContinuous(dt, {
+      weaponType: this.weaponType,
+      spinRatio: Math.min(1.0, spinSpeed / 35.0),
+      chargeRatio: chargeRatio || 0.0,
+      locoActivity: isMoving
+        ? Math.min(1.5, this.linearVel.length() * 0.7 + Math.abs(this.angularVel) * 0.5 + 0.35)
+        : 0.0,
+      gimbalVel: slewSpeed,
     });
 
     // 6. Update Ballistics, Shell Casings & Single Army Aim Box
@@ -494,6 +621,9 @@ export class RobotController {
       this.onTelemetryUpdate({
         locomotionState: this.isSitting && !isMoving ? 'SITTING_CROUCH' : states.locomotionState,
         weaponState: states.weaponState,
+        weaponType: this.weaponType,
+        chargePct: Math.round((chargeRatio || 0.0) * 100),
+        soundEnabled: this.soundEngine.enabled,
         testOverride: states.testOverride,
         isSitting: this.isSitting,
         isWireframe: this.isWireframe,

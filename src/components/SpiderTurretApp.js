@@ -3,13 +3,55 @@ import * as THREE from 'three';
 import { WebGPURenderer } from 'three/webgpu';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { createSpiderTSLUniforms } from '../spider/tslMaterials.js?v=32';
-import { loadSpiderTurretRig } from '../spider/RobotRig.js?v=32';
-import { CameraController } from '../spider/CameraController.js?v=32';
-import { ProjectileSystem } from '../spider/ProjectileSystem.js?v=32';
-import { RobotController } from '../spider/RobotController.js?v=32';
+import { createSpiderTSLUniforms } from '../spider/tslMaterials.js?v=38';
+import { loadSpiderTurretRig } from '../spider/RobotRig.js?v=38';
+import { CameraController } from '../spider/CameraController.js?v=38';
+import { ProjectileSystem } from '../spider/ProjectileSystem.js?v=38';
+import { RobotController } from '../spider/RobotController.js?v=38';
 
 const h = React.createElement;
+
+const WEAPON_SPECS = {
+  GATLING: {
+    id: 'GATLING',
+    action: 'WEAPON_GATLING',
+    chip: 'GAU-6',
+    fireLabel: 'FIRE GATLING',
+    modTitle: '6-BARREL GATLING CANNON',
+    wellLabel: '6×28MM BORE ROTOR',
+    cadenceLabel: 'ROTARY CADENCE',
+    caliber: '6× 28mm',
+    breech: 'ROTARY DRUM',
+    maxFeed: '3,600 RPM',
+    blueprintSrc: './renders/part_gun.png?v=34',
+  },
+  RAILGUN: {
+    id: 'RAILGUN',
+    action: 'WEAPON_RAILGUN',
+    chip: 'RAIL-02',
+    fireLabel: 'FIRE RAILGUN',
+    modTitle: 'EMG-02 TWIN RAILGUN',
+    wellLabel: 'TWIN RAIL CAPACITOR',
+    cadenceLabel: 'CAPACITOR CHARGE',
+    caliber: '38mm PLASMA',
+    breech: 'COIL BANK',
+    maxFeed: '92 M/S SLUG',
+    blueprintSrc: './renders/part_gun_railgun.png?v=34',
+  },
+  MISSILE: {
+    id: 'MISSILE',
+    action: 'WEAPON_MISSILE',
+    chip: 'MLRS-8',
+    fireLabel: 'FIRE MISSILES',
+    modTitle: 'MLRS-8 ROCKET POD',
+    wellLabel: '8-TUBE ROCKET DRUM',
+    cadenceLabel: 'RIPPLE SALVO',
+    caliber: '8× 70mm HE',
+    breech: '8-TUBE DRUM',
+    maxFeed: '250 RPM SALVO',
+    blueprintSrc: './renders/part_gun_missile.png?v=34',
+  },
+};
 
 /**
  * Clean vector icons for the bottom Transport / Player Bar.
@@ -17,8 +59,8 @@ const h = React.createElement;
 function renderActionIcon(id) {
   const props = {
     viewBox: '0 0 24 24',
-    width: 13,
-    height: 13,
+    width: 15,
+    height: 15,
     fill: 'none',
     stroke: 'currentColor',
     strokeWidth: 2.1,
@@ -91,6 +133,22 @@ function renderActionIcon(id) {
           d: 'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7M3 9V3h6M21 15v6h-6M3 3l7 7M21 21l-7-7',
         })
       );
+    case 'SOUND_ON':
+      return h(
+        'svg',
+        props,
+        h('polygon', { points: '11 5 6 9 2 9 2 15 6 15 11 19 11 5' }),
+        h('path', { d: 'M15.54 8.46a5 5 0 0 1 0 7.07' }),
+        h('path', { d: 'M19.07 4.93a10 10 0 0 1 0 14.14' })
+      );
+    case 'SOUND_OFF':
+      return h(
+        'svg',
+        props,
+        h('polygon', { points: '11 5 6 9 2 9 2 15 6 15 11 19 11 5' }),
+        h('line', { x1: 23, y1: 9, x2: 17, y2: 15 }),
+        h('line', { x1: 17, y1: 9, x2: 23, y2: 15 })
+      );
     case 'RESET':
     default:
       return h(
@@ -140,6 +198,7 @@ const PROTRACTOR_TICKS = Array.from({ length: 24 }, (_, i) => {
  */
 function SpatialAnatomyCanvas({
   activeOrtho,
+  weaponType,
   onSelectOrthoStamp,
   onFocusPreset,
   onGimbalPointerEvent,
@@ -156,6 +215,8 @@ function SpatialAnatomyCanvas({
   gaitPairARef,
   gaitPairBRef,
 }) {
+  const activeWeaponSpec = WEAPON_SPECS[weaponType] || WEAPON_SPECS.GATLING;
+
   return h(
     React.Fragment,
     null,
@@ -235,7 +296,7 @@ function SpatialAnatomyCanvas({
       h(
         'div',
         { className: 'ltc-top-row' },
-        h('span', { className: 'ltc-eyebrow' }, 'KINEMATICS & ROTOR'),
+        h('span', { className: 'ltc-eyebrow' }, 'KINEMATICS & PAYLOAD'),
         h('span', { ref: legPostureRef, className: 'ltc-posture-pill' }, 'STANDING')
       ),
 
@@ -317,7 +378,7 @@ function SpatialAnatomyCanvas({
           h('span', { className: 'ltc-well-lbl' }, '4-LIMB GAIT & YAW')
         ),
 
-        // Well 2: 6-Barrel Gatling Muzzle Cross-Section
+        // Well 2: Active Weapon Muzzle Cross-Section (Gatling 6-Bore / Railgun Coils / Missile 8-Tube Matrix)
         h(
           'div',
           { className: 'ltc-well-card' },
@@ -341,34 +402,75 @@ function SpatialAnatomyCanvas({
               stroke: '#18181b',
               strokeWidth: '1.6',
             }),
-            h(
-              'g',
-              { ref: muzzleRotorSvgRef, style: { transformOrigin: '50px 50px' } },
-              BARREL_BORES.map((b, idx) =>
-                h(
+            weaponType === 'RAILGUN'
+              ? h(
                   'g',
-                  { key: idx },
-                  h('circle', {
-                    cx: b.cx,
-                    cy: b.cy,
-                    r: 6.8,
-                    fill: '#ffffff',
-                    stroke: '#18181b',
-                    strokeWidth: '1.6',
-                  }),
-                  h('circle', {
-                    cx: b.cx,
-                    cy: b.cy,
-                    r: 2.2,
-                    fill: '#18181b',
-                  })
+                  null,
+                  h('rect', { x: 25, y: 24, width: 11, height: 52, rx: 2, fill: '#ffffff', stroke: '#18181b', strokeWidth: '1.6' }),
+                  h('rect', { x: 64, y: 24, width: 11, height: 52, rx: 2, fill: '#ffffff', stroke: '#18181b', strokeWidth: '1.6' }),
+                  h('line', { x1: 36, y1: 36, x2: 64, y2: 36, stroke: '#e65616', strokeWidth: '1.8', strokeDasharray: '2 2' }),
+                  h('line', { x1: 36, y1: 64, x2: 64, y2: 64, stroke: '#e65616', strokeWidth: '1.8', strokeDasharray: '2 2' }),
+                  h('circle', { cx: 50, cy: 50, r: 8.5, fill: '#e65616' }),
+                  h('circle', { cx: 50, cy: 50, r: 3.5, fill: '#ffffff' })
                 )
-              ),
-              h('circle', { cx: 50, cy: 50, r: 6.5, fill: '#e65616' }),
-              h('circle', { cx: 50, cy: 50, r: 2.2, fill: '#ffffff' })
-            )
+              : weaponType === 'MISSILE'
+              ? h(
+                  'g',
+                  null,
+                  [22.5, 67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5].map((deg, tIdx) => {
+                    const rad = (deg * Math.PI) / 180;
+                    const cx = (50 + Math.cos(rad) * 22.5).toFixed(1);
+                    const cy = (50 + Math.sin(rad) * 22.5).toFixed(1);
+                    return h(
+                      'g',
+                      { key: tIdx },
+                      h('circle', {
+                        cx,
+                        cy,
+                        r: 5.5,
+                        fill: '#ffffff',
+                        stroke: '#18181b',
+                        strokeWidth: '1.5',
+                      }),
+                      h('circle', {
+                        cx,
+                        cy,
+                        r: 2.3,
+                        fill: '#e65616',
+                      })
+                    );
+                  }),
+                  h('circle', { cx: 50, cy: 50, r: 6.2, fill: '#18181b' }),
+                  h('circle', { cx: 50, cy: 50, r: 2.5, fill: '#ffffff' })
+                )
+              : h(
+                  'g',
+                  { ref: muzzleRotorSvgRef, style: { transformOrigin: '50px 50px' } },
+                  BARREL_BORES.map((b, idx) =>
+                    h(
+                      'g',
+                      { key: idx },
+                      h('circle', {
+                        cx: b.cx,
+                        cy: b.cy,
+                        r: 6.8,
+                        fill: '#ffffff',
+                        stroke: '#18181b',
+                        strokeWidth: '1.6',
+                      }),
+                      h('circle', {
+                        cx: b.cx,
+                        cy: b.cy,
+                        r: 2.2,
+                        fill: '#18181b',
+                      })
+                    )
+                  ),
+                  h('circle', { cx: 50, cy: 50, r: 6.5, fill: '#e65616' }),
+                  h('circle', { cx: 50, cy: 50, r: 2.2, fill: '#ffffff' })
+                )
           ),
-          h('span', { className: 'ltc-well-lbl' }, '6×28MM BORE ROTOR')
+          h('span', { className: 'ltc-well-lbl' }, activeWeaponSpec.wellLabel)
         )
       ),
 
@@ -380,7 +482,7 @@ function SpatialAnatomyCanvas({
           'div',
           { className: 'ltc-metric-pill' },
           h('span', { ref: dossierRpmRef, className: 'ltc-mp-val' }, '0 RPM'),
-          h('span', { className: 'ltc-mp-lbl' }, 'ROTARY CADENCE')
+          h('span', { className: 'ltc-mp-lbl' }, activeWeaponSpec.cadenceLabel)
         ),
         h(
           'div',
@@ -474,13 +576,13 @@ function SpatialAnatomyCanvas({
         'div',
         { className: 'rac-modules-stack' },
 
-        // MODULE 01: 6-BARREL GATLING CANNON
+        // MODULE 01: PRIMARY WEAPON PAYLOAD (GATLING / RAILGUN / MISSILE POD)
         h(
           'article',
           {
             className: 'rac-module-block',
             onClick: () => onFocusPreset('front'),
-            title: 'Click to align camera to Front Gatling View',
+            title: 'Click to align camera to Front Weapon View',
           },
           h(
             'div',
@@ -489,7 +591,7 @@ function SpatialAnatomyCanvas({
               'div',
               { className: 'rac-mod-left' },
               h('span', { className: 'rac-mod-num orange' }, '01'),
-              h('span', { className: 'rac-mod-name' }, '6-BARREL GATLING CANNON')
+              h('span', { className: 'rac-mod-name' }, activeWeaponSpec.modTitle)
             ),
             h('span', { ref: rightGunRpmRef, className: 'rac-mod-live' }, '0 RPM')
           ),
@@ -501,8 +603,8 @@ function SpatialAnatomyCanvas({
             h('span', { className: 'stage-bracket bl' }),
             h('span', { className: 'stage-bracket br' }),
             h('img', {
-              src: './renders/part_gun.png?v=25',
-              alt: '6-Barrel Gatling Cannon Blueprint',
+              src: activeWeaponSpec.blueprintSrc,
+              alt: 'Primary Weapon Payload Blueprint',
               className: 'rac-sketch-img',
             })
           ),
@@ -513,19 +615,19 @@ function SpatialAnatomyCanvas({
               'div',
               { className: 'rac-spec-cell' },
               h('span', { className: 'rac-sk' }, 'CALIBER'),
-              h('span', { className: 'rac-sv' }, '6× 28mm')
+              h('span', { className: 'rac-sv' }, activeWeaponSpec.caliber)
             ),
             h(
               'div',
               { className: 'rac-spec-cell' },
               h('span', { className: 'rac-sk' }, 'BREECH'),
-              h('span', { className: 'rac-sv' }, 'ROTARY DRUM')
+              h('span', { className: 'rac-sv' }, activeWeaponSpec.breech)
             ),
             h(
               'div',
               { className: 'rac-spec-cell' },
               h('span', { className: 'rac-sk' }, 'MAX FEED'),
-              h('span', { className: 'rac-sv' }, '3,600 RPM')
+              h('span', { className: 'rac-sv' }, activeWeaponSpec.maxFeed)
             )
           )
         ),
@@ -785,6 +887,8 @@ export function SpiderTurretApp({ glbUrl = './spider_turret.glb?v=25' }) {
   const [activeOrtho, setActiveOrtho] = useState('side');
   const [uiFlags, setUiFlags] = useState({
     activeOverride: 'IDLE',
+    weaponType: 'GATLING',
+    soundEnabled: true,
     isSitting: false,
     isWireframe: false,
     isExploded: false,
@@ -798,6 +902,9 @@ export function SpiderTurretApp({ glbUrl = './spider_turret.glb?v=25' }) {
   const telemetryDataRef = useRef({
     locomotionState: 'IDLE',
     weaponState: 'STANDBY',
+    weaponType: 'GATLING',
+    chargePct: 0,
+    soundEnabled: true,
     testOverride: null,
     isSitting: false,
     isWireframe: false,
@@ -867,11 +974,22 @@ export function SpiderTurretApp({ glbUrl = './spider_turret.glb?v=25' }) {
     if (turretNeedleSvgRef.current) {
       turretNeedleSvgRef.current.style.transform = `rotate(${nextTel.turretYawDeg}deg)`;
     }
+
+    const wType = nextTel.weaponType || 'GATLING';
+    const weaponMetricText =
+      wType === 'RAILGUN'
+        ? `${nextTel.chargePct || 0}% CAP`
+        : wType === 'MISSILE'
+        ? nextTel.isFiring
+          ? '210 RPM'
+          : '8 READY'
+        : `${nextTel.barrelRpm} RPM`;
+
     if (dossierRpmRef.current) {
-      dossierRpmRef.current.textContent = `${nextTel.barrelRpm} RPM`;
+      dossierRpmRef.current.textContent = weaponMetricText;
     }
     if (rightGunRpmRef.current) {
-      rightGunRpmRef.current.textContent = `${nextTel.barrelRpm} RPM`;
+      rightGunRpmRef.current.textContent = weaponMetricText;
     }
     if (muzzleRotorSvgRef.current) {
       if (nextTel.barrelRpm > 10) {
@@ -951,9 +1069,12 @@ export function SpiderTurretApp({ glbUrl = './spider_turret.glb?v=25' }) {
 
     const nextOverride =
       nextTel.testOverride || (nextTel.locomotionState === 'IDLE' ? 'IDLE' : 'MANUAL');
+    const nextSound = nextTel.soundEnabled !== undefined ? nextTel.soundEnabled : true;
     setUiFlags((prev) => {
       if (
         prev.activeOverride === nextOverride &&
+        prev.weaponType === wType &&
+        prev.soundEnabled === nextSound &&
         prev.isSitting === nextTel.isSitting &&
         prev.isWireframe === nextTel.isWireframe &&
         prev.isExploded === nextTel.isExploded
@@ -962,6 +1083,8 @@ export function SpiderTurretApp({ glbUrl = './spider_turret.glb?v=25' }) {
       }
       return {
         activeOverride: nextOverride,
+        weaponType: wType,
+        soundEnabled: nextSound,
         isSitting: nextTel.isSitting,
         isWireframe: nextTel.isWireframe,
         isExploded: nextTel.isExploded,
@@ -1071,6 +1194,7 @@ export function SpiderTurretApp({ glbUrl = './spider_turret.glb?v=25' }) {
     // 1. LEFT TELEMETRY CARD, BOTTOM-LEFT ORTHO STAMPS & RIGHT MAJOR BLUEPRINT CARD
     h(SpatialAnatomyCanvas, {
       activeOrtho,
+      weaponType: uiFlags.weaponType,
       onSelectOrthoStamp: handleSelectOrthoStamp,
       onFocusPreset: handlePresetView,
       onGimbalPointerEvent: handleGimbalPointerEvent,
@@ -1220,14 +1344,14 @@ export function SpiderTurretApp({ glbUrl = './spider_turret.glb?v=25' }) {
       )
     ),
 
-    // 6. BOTTOM-CENTER FLOATING PILL PLAYER DOCK
+    // 6. BOTTOM-CENTER COMPACT FLOATING COMMAND DOCK
     h(
       'footer',
       { className: 'player-dock-wrap' },
       h(
         'div',
         { className: 'player-dock' },
-        // Segment 1: Locomotion & Posture Pill Strip
+        // Group 1: Locomotion & Posture Pill Strip
         h(
           'div',
           { className: 'player-seg' },
@@ -1247,15 +1371,15 @@ export function SpiderTurretApp({ glbUrl = './spider_turret.glb?v=25' }) {
 
         h('div', { className: 'player-divider' }),
 
-        // Segment 2: 2D Omni-Directional Head Gimbal Joystick Pad (Any 360° Direction & Up/Down Angle)
+        // Group 2: Compact Turret Gimbal Dial + 3-Way Weapon Selector + Fire Trigger
         h(
           'div',
-          { className: 'player-seg gimbal-pad-seg' },
+          { className: 'player-seg ordnance-seg' },
           h(
             'div',
             {
               className: 'gimbal-xy-pad',
-              title: 'Drag in any direction to aim Head (360° Yaw & Up/Down Pitch). Double-click to center.',
+              title: 'Drag to aim Head 360° & Pitch (Double-click to center at 0°)',
               onPointerDown: (e) => {
                 e.currentTarget.setPointerCapture(e.pointerId);
                 handleGimbalPointerEvent(e);
@@ -1269,63 +1393,68 @@ export function SpiderTurretApp({ glbUrl = './spider_turret.glb?v=25' }) {
             h('span', { className: 'gimbal-axis-v' }),
             h('span', { ref: gimbalPuckDomRef, className: 'gimbal-puck' })
           ),
-          h(
-            'div',
-            { className: 'gimbal-meta-col' },
+          Object.values(WEAPON_SPECS).map((wSpec) =>
             h(
-              'div',
-              { className: 'gimbal-meta-top' },
-              h('span', { className: 'gimbal-lbl' }, 'HEAD 360°'),
-              h(
-                'button',
-                {
-                  className: 'gimbal-zero-btn',
-                  title: 'Center Head Aim (0° / 0°)',
-                  onClick: () => handleTestTrigger('HEAD_CENTER'),
-                },
-                '0°'
-              )
-            ),
-            h('span', { ref: gimbalDockReadoutRef, className: 'gimbal-angle-val' }, '0° / 0°')
+              'button',
+              {
+                key: wSpec.id,
+                className: `player-pill compact-pill ${
+                  uiFlags.weaponType === wSpec.id ? 'active' : ''
+                }`,
+                title: `Transform to ${wSpec.modTitle}`,
+                onClick: () => handleTestTrigger(wSpec.action),
+              },
+              h('span', null, wSpec.chip)
+            )
+          ),
+          h(
+            'button',
+            {
+              className: `player-fire-btn ${isButtonActive('FIRE') ? 'active' : ''}`,
+              title: (WEAPON_SPECS[uiFlags.weaponType] || WEAPON_SPECS.GATLING).fireLabel,
+              onClick: () => handleTestTrigger('FIRE'),
+            },
+            renderActionIcon('FIRE'),
+            h('span', null, 'FIRE')
           )
         ),
 
         h('div', { className: 'player-divider' }),
 
-        // Segment 3: Primary Live-Fire Action Pill
-        h(
-          'button',
-          {
-            className: `player-fire-btn ${isButtonActive('FIRE') ? 'active' : ''}`,
-            onClick: () => handleTestTrigger('FIRE'),
-          },
-          renderActionIcon('FIRE'),
-          h('span', null, 'FIRE GATLING')
-        ),
-
-        h('div', { className: 'player-divider' }),
-
-        // Segment 4: CAD Inspection Toggles (Wireframe, Explode, Reset)
+        // Group 3: Compact Icon-Only Utility Cluster (SFX, Wireframe, Explode, Reset)
         h(
           'div',
-          { className: 'player-seg' },
+          { className: 'player-seg util-seg' },
           h(
             'button',
             {
-              className: `player-pill cad-pill ${isButtonActive('WIREFRAME') ? 'active-cad' : ''}`,
-              onClick: () => handleTestTrigger('WIREFRAME'),
+              className: `player-pill icon-only-pill ${uiFlags.soundEnabled ? 'active-sfx' : ''}`,
+              title: 'Toggle Mechanical & Ballistic Audio SFX (M)',
+              onClick: () => handleTestTrigger('TOGGLE_SOUND'),
             },
-            renderActionIcon('WIREFRAME'),
-            h('span', null, 'Wireframe')
+            renderActionIcon(uiFlags.soundEnabled ? 'SOUND_ON' : 'SOUND_OFF')
           ),
           h(
             'button',
             {
-              className: `player-pill cad-pill ${isButtonActive('EXPLODE') ? 'active-cad' : ''}`,
+              className: `player-pill icon-only-pill cad-pill ${
+                isButtonActive('WIREFRAME') ? 'active-cad' : ''
+              }`,
+              title: 'Toggle CAD Wireframe Overlay',
+              onClick: () => handleTestTrigger('WIREFRAME'),
+            },
+            renderActionIcon('WIREFRAME')
+          ),
+          h(
+            'button',
+            {
+              className: `player-pill icon-only-pill cad-pill ${
+                isButtonActive('EXPLODE') ? 'active-cad' : ''
+              }`,
+              title: 'Toggle Mechanical Exploded View',
               onClick: () => handleTestTrigger('EXPLODE'),
             },
-            renderActionIcon('EXPLODE'),
-            h('span', null, 'Explode')
+            renderActionIcon('EXPLODE')
           ),
           h(
             'button',

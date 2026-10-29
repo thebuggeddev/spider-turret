@@ -753,7 +753,7 @@
     }
 
     /* ==========================================================================
-       8. BOTTOM-CENTER FLOATING PILL PLAYER DOCK
+       8. BOTTOM-CENTER FLOATING COMMAND DOCK
        ========================================================================== */
     .player-dock-wrap {
       position: fixed;
@@ -767,43 +767,52 @@
     .player-dock {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 8px;
       background-color: rgba(248, 246, 240, 0.96);
       border: 1px solid var(--border-strong);
       border-radius: 999px;
-      padding: 4px 7px;
-      box-shadow: 0 10px 28px rgba(24, 24, 27, 0.11);
+      padding: 6px 10px;
+      box-shadow: 0 12px 32px rgba(24, 24, 27, 0.12);
       pointer-events: auto;
     }
 
     .player-seg {
       display: flex;
       align-items: center;
-      gap: 2px;
+      gap: 3px;
       background-color: var(--paper-bg);
       border: 1px solid var(--border-hairline);
       border-radius: 999px;
-      padding: 2.5px;
+      padding: 3.5px;
+    }
+
+    .player-seg.ordnance-seg {
+      gap: 4.5px;
+      padding: 3.5px 4.5px 3.5px 5.5px;
+    }
+
+    .player-seg.util-seg {
+      gap: 3px;
     }
 
     .player-divider {
       width: 1px;
-      height: 20px;
+      height: 24px;
       background-color: var(--border-hairline);
     }
 
     .player-pill {
       display: inline-flex;
       align-items: center;
-      gap: 4.5px;
-      height: 30px;
-      padding: 0 9.5px;
+      gap: 6px;
+      height: 35px;
+      padding: 0 13px;
       border-radius: 999px;
       border: none;
       background-color: transparent;
       color: var(--ink-secondary);
       font-family: var(--font-mono);
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 600;
       cursor: pointer;
       white-space: nowrap;
@@ -821,11 +830,17 @@
     }
 
     .player-pill.compact-pill {
-      padding: 0 8px;
+      padding: 0 11px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
     }
 
     .player-pill.icon-only-pill {
-      padding: 0 8px;
+      width: 35px;
+      height: 35px;
+      padding: 0;
+      justify-content: center;
     }
 
     .player-pill.cad-pill.active-cad {
@@ -833,25 +848,25 @@
       background-color: var(--signal-orange);
     }
 
-    /* 2D Omni-Directional Head Gimbal Joystick Pad in Player Dock */
-    .gimbal-pad-seg {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      padding: 2px 8px 2px 4px;
+    .player-pill.active-sfx {
+      color: var(--signal-orange);
+      background-color: var(--signal-orange-soft);
+      border: 1px solid rgba(230, 86, 22, 0.35);
     }
 
+    /* 36px 2D Omni-Directional Head Gimbal Dial inside Ordnance Segment */
     .gimbal-xy-pad {
       position: relative;
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background-color: #ffffff;
       border: 1.5px solid var(--ink-primary);
-      box-shadow: inset 0 1px 4px rgba(24, 24, 27, 0.12);
+      box-shadow: inset 0 1px 4px rgba(24, 24, 27, 0.14);
       cursor: grab;
       touch-action: none;
       flex-shrink: 0;
+      margin-right: 2px;
     }
 
     .gimbal-xy-pad:active {
@@ -862,8 +877,8 @@
     .gimbal-axis-h {
       position: absolute;
       top: 50%;
-      left: 3px;
-      right: 3px;
+      left: 4px;
+      right: 4px;
       height: 1px;
       background-color: var(--border-hairline);
       transform: translateY(-50%);
@@ -873,8 +888,8 @@
     .gimbal-axis-v {
       position: absolute;
       left: 50%;
-      top: 3px;
-      bottom: 3px;
+      top: 4px;
+      bottom: 4px;
       width: 1px;
       background-color: var(--border-hairline);
       transform: translateX(-50%);
@@ -890,77 +905,31 @@
       border-radius: 50%;
       background-color: var(--signal-orange);
       border: 1.5px solid #ffffff;
-      box-shadow: 0 1px 4px rgba(24, 24, 27, 0.35);
+      box-shadow: 0 1px 4px rgba(24, 24, 27, 0.38);
       transform: translate(-50%, -50%);
       pointer-events: none;
       transition: transform 0.05s linear;
     }
 
-    .gimbal-meta-col {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-      font-family: var(--font-mono);
-      min-width: 68px;
-    }
-
-    .gimbal-meta-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 4px;
-    }
-
-    .gimbal-lbl {
-      font-size: 7px;
-      font-weight: 700;
-      color: var(--ink-muted);
-      letter-spacing: 0.05em;
-    }
-
-    .gimbal-zero-btn {
-      font-family: var(--font-mono);
-      font-size: 6.5px;
-      font-weight: 700;
-      color: var(--ink-secondary);
-      background-color: var(--surface-subtle);
-      border: 1px solid var(--border-strong);
-      border-radius: 3px;
-      padding: 0.5px 3.5px;
-      cursor: pointer;
-    }
-
-    .gimbal-zero-btn:hover {
-      color: #ffffff;
-      background-color: var(--signal-orange);
-      border-color: var(--signal-orange);
-    }
-
-    .gimbal-angle-val {
-      font-size: 9px;
-      font-weight: 700;
-      color: var(--ink-primary);
-      white-space: nowrap;
-    }
-
     .player-fire-btn {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      height: 34px;
-      padding: 0 13px;
+      gap: 6px;
+      height: 36px;
+      padding: 0 15px;
       border-radius: 999px;
       border: 1.5px solid var(--signal-orange);
       background-color: var(--signal-orange);
       color: #ffffff;
       font-family: var(--font-mono);
-      font-size: 10.5px;
+      font-size: 11px;
       font-weight: 700;
       letter-spacing: 0.04em;
       cursor: pointer;
       white-space: nowrap;
-      box-shadow: 0 4px 12px rgba(230, 86, 22, 0.25);
+      box-shadow: 0 3px 12px rgba(230, 86, 22, 0.25);
       transition: all 0.14s ease;
+      margin-left: 2px;
     }
 
     .player-fire-btn:hover {
@@ -1061,11 +1030,11 @@
   <script type="module">
     import React from 'react';
     import { createRoot } from 'react-dom/client';
-    import { SpiderTurretApp } from './src/components/SpiderTurretApp.js?v=32';
+    import { SpiderTurretApp } from './src/components/SpiderTurretApp.js?v=38';
 
     const rootEl = document.getElementById('root');
     const root = createRoot(rootEl);
-    root.render(React.createElement(SpiderTurretApp, { glbUrl: './spider_turret.glb?v=32' }));
+    root.render(React.createElement(SpiderTurretApp, { glbUrl: './spider_turret.glb?v=38' }));
   </script>
 </body>
 </html>
